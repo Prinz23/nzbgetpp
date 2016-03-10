@@ -94,7 +94,7 @@ def save_obj(obj, name):
 def load_obj(name):
     if os.path.isfile(name):
         try:
-            with open(name, 'r') as f:
+            with open(name, 'rb') as f:
                 return pickle.load(f)
         except:
             print "Error loading " + name
