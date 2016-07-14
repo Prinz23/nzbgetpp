@@ -12,25 +12,83 @@
 ### NZBGET SCAN SCRIPT                                          ###
 ##############################################################################
 
-import os, zipfile, tarfile, gzip, pickle, datetime, re, struct
+import os, zipfile, tarfile, gzip, pickle, datetime, re, struct, locale
 import rarfile.rarfile as rarfile
 
 from gzip import FEXTRA, FNAME
 
-filename = os.environ['NZBNP_FILENAME']
+if 'nt' == os.name:
+    import ctypes
+
+    class WinEnv:
+        def __init__(self):
+            pass
+
+        @staticmethod
+        def get_environment_variable(name):
+            name = unicode(name)  # ensures string argument is unicode
+            n = ctypes.windll.kernel32.GetEnvironmentVariableW(name, None, 0)
+            result = None
+            if n:
+                buf = ctypes.create_unicode_buffer(u'\0'*n)
+                ctypes.windll.kernel32.GetEnvironmentVariableW(name, buf, n)
+                result = buf.value
+            return result
+
+        def __getitem__(self, key):
+            return self.get_environment_variable(key)
+
+        def get(self, key, default=None):
+            r = self.get_environment_variable(key)
+            return r if r is not None else default
+
+    env_var = WinEnv()
+else:
+    class LinuxEnv(object):
+        def __init__(self, environ):
+            self.environ = environ
+
+        def __getitem__(self, key):
+            v = self.environ.get(key)
+            try:
+                return v.decode(SYS_ENCODING) if isinstance(v, str) else v
+            except (UnicodeDecodeError, UnicodeEncodeError):
+                return v
+
+        def get(self, key, default=None):
+            v = self[key]
+            return v if v is not None else default
+
+    env_var = LinuxEnv(os.environ)
+
+
+SYS_ENCODING = None
+try:
+    locale.setlocale(locale.LC_ALL, '')
+except (locale.Error, IOError):
+    pass
+try:
+    SYS_ENCODING = locale.getpreferredencoding()
+except (locale.Error, IOError):
+    pass
+if not SYS_ENCODING or SYS_ENCODING in ('ANSI_X3.4-1968', 'US-ASCII', 'ASCII'):
+    SYS_ENCODING = 'UTF-8'
+
+
+filename = env_var.get('NZBNP_FILENAME')
 if re.search(r"\.tar\.gz$", filename, flags=re.I) is None:
     ext = os.path.splitext(filename)[1].lower()
 else:
     ext = '.tar.gz'
-cat = os.environ['NZBNP_CATEGORY']
-dir = os.environ['NZBNP_DIRECTORY']
-prio = os.environ['NZBNP_PRIORITY']
-top = os.environ['NZBNP_TOP']
-pause = os.environ['NZBNP_PAUSED']
+cat = env_var.get('NZBNP_CATEGORY')
+dir = env_var.get('NZBNP_DIRECTORY')
+prio = env_var.get('NZBNP_PRIORITY')
+top = env_var.get('NZBNP_TOP')
+pause = env_var.get('NZBNP_PAUSED')
 if 'NZBNP_DUPEKEY' in os.environ:
-    dupekey = os.environ['NZBNP_DUPEKEY']
-    dupescore = os.environ['NZBNP_DUPESCORE']
-    dupemode = os.environ['NZBNP_DUPEMODE']
+    dupekey = env_var.get('NZBNP_DUPEKEY')
+    dupescore = env_var.get('NZBNP_DUPESCORE')
+    dupemode = env_var.get('NZBNP_DUPEMODE')
 else:
     dupekey = None
     dupescore = None
