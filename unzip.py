@@ -75,6 +75,48 @@ if not SYS_ENCODING or SYS_ENCODING in ('ANSI_X3.4-1968', 'US-ASCII', 'ASCII'):
     SYS_ENCODING = 'UTF-8'
 
 
+class ek:
+    @staticmethod
+    def fixStupidEncodings(x, silent=False):
+        if type(x) == str:
+            try:
+                return x.decode(SYS_ENCODING)
+            except UnicodeDecodeError:
+                return None
+        elif type(x) == unicode:
+            return x
+        else:
+            return None
+
+    @staticmethod
+    def fixListEncodings(x):
+        if type(x) != list and type(x) != tuple:
+            return x
+        else:
+            return filter(lambda x: x != None, map(ek.fixStupidEncodings, x))
+
+    @staticmethod
+    def callPeopleStupid(x):
+        try:
+            return x.encode(SYS_ENCODING)
+        except UnicodeEncodeError:
+            return x.encode(SYS_ENCODING, 'ignore')
+
+    @staticmethod
+    def ek(func, *args, **kwargs):
+        if os.name == 'nt':
+            result = func(*args, **kwargs)
+        else:
+            result = func(*[ek.callPeopleStupid(x) if type(x) == str else x for x in args], **kwargs)
+
+        if type(result) in (list, tuple):
+            return ek.fixListEncodings(result)
+        elif type(result) == str:
+            return ek.fixStupidEncodings(result)
+        else:
+            return result
+
+
 filename = env_var.get('NZBNP_FILENAME')
 if re.search(r"\.tar\.gz$", filename, flags=re.I) is None:
     ext = os.path.splitext(filename)[1].lower()
@@ -206,7 +248,7 @@ if ext == '.zip':
     zipf = zipfile.ZipFile(filename, mode='r')
     zf = get_files(zipf)
     if zf:
-        zipf.extractall(path = dir, members = zf)
+        ek.ek(zipf.extractall, path=dir, members=zf)
         now = datetime.datetime.now()
         for z in zf:
             if nzb_list:
@@ -223,7 +265,7 @@ elif ext in ['.tar.gz', '.tar', '.tgz']:
     tarf = tarfile.open(filename, mode='r')
     tf = get_tar_files(tarf)
     if tf:
-        tarf.extractall(path = dir, members = tf)
+        ek.ek(tarf.extractall, path=dir, members=tf)
         now = datetime.datetime.now()
         for z in tf:
             if nzb_list:
@@ -260,7 +302,7 @@ elif ext == '.rar':
     rarf = rarfile.RarFile(filename, mode='r')
     rf = get_files(rarf)
     if rf:
-        rarf.extractall(path = dir, members = rf)
+        ek.ek(rarf.extractall, path=dir, members=rf)
         now = datetime.datetime.now()
         for r in rf:
             if nzb_list:
