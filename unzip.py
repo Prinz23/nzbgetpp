@@ -12,54 +12,79 @@
 ### NZBGET SCAN SCRIPT                                          ###
 ##############################################################################
 
-import os, zipfile, tarfile, gzip, pickle, datetime, re, struct, locale
+from __future__ import print_function
+import os, zipfile, tarfile, gzip, pickle, datetime, re, struct, locale, sys
 import rarfile.rarfile as rarfile
 
 from gzip import FEXTRA, FNAME
 
-if 'nt' == os.name:
-    import ctypes
 
-    class WinEnv:
+if sys.version_info < (3, 0, 0):
+    PY3 = False
+    PY2 = True
+else:
+    PY3 = True
+    PY2 = False
+
+
+if PY2:
+    if 'nt' == os.name:
+        import ctypes
+
+        class WinEnv:
+            def __init__(self):
+                pass
+
+            @staticmethod
+            def get_environment_variable(name):
+                name = unicode(name)  # ensures string argument is unicode
+                n = ctypes.windll.kernel32.GetEnvironmentVariableW(name, None, 0)
+                result = None
+                if n:
+                    buf = ctypes.create_unicode_buffer(u'\0'*n)
+                    ctypes.windll.kernel32.GetEnvironmentVariableW(name, buf, n)
+                    result = buf.value
+                return result
+
+            def __getitem__(self, key):
+                return self.get_environment_variable(key)
+
+            def get(self, key, default=None):
+                r = self.get_environment_variable(key)
+                return r if r is not None else default
+
+        env_var = WinEnv()
+    else:
+        class LinuxEnv(object):
+            def __init__(self, environ):
+                self.environ = environ
+
+            def __getitem__(self, key):
+                v = self.environ.get(key)
+                try:
+                    return v.decode(SYS_ENCODING) if isinstance(v, str) else v
+                except (UnicodeDecodeError, UnicodeEncodeError):
+                    return v
+
+            def get(self, key, default=None):
+                v = self[key]
+                return v if v is not None else default
+
+        env_var = LinuxEnv(os.environ)
+else:
+    class Py3Env(object):
         def __init__(self):
             pass
 
-        @staticmethod
-        def get_environment_variable(name):
-            name = unicode(name)  # ensures string argument is unicode
-            n = ctypes.windll.kernel32.GetEnvironmentVariableW(name, None, 0)
-            result = None
-            if n:
-                buf = ctypes.create_unicode_buffer(u'\0'*n)
-                ctypes.windll.kernel32.GetEnvironmentVariableW(name, buf, n)
-                result = buf.value
-            return result
-
-        def __getitem__(self, key):
-            return self.get_environment_variable(key)
+        def __getitem__(self, item):
+            return os.environ.get(item)
 
         def get(self, key, default=None):
-            r = self.get_environment_variable(key)
-            return r if r is not None else default
+            if None is not default:
+                return os.environ.get(key)
+            return os.environ.get(key, default)
 
-    env_var = WinEnv()
-else:
-    class LinuxEnv(object):
-        def __init__(self, environ):
-            self.environ = environ
-
-        def __getitem__(self, key):
-            v = self.environ.get(key)
-            try:
-                return v.decode(SYS_ENCODING) if isinstance(v, str) else v
-            except (UnicodeDecodeError, UnicodeEncodeError):
-                return v
-
-        def get(self, key, default=None):
-            v = self[key]
-            return v if v is not None else default
-
-    env_var = LinuxEnv(os.environ)
+    env_var = Py3Env()
 
 
 SYS_ENCODING = None
@@ -75,7 +100,7 @@ if not SYS_ENCODING or SYS_ENCODING in ('ANSI_X3.4-1968', 'US-ASCII', 'ASCII'):
     SYS_ENCODING = 'UTF-8'
 
 
-class ek:
+class ekPy2:
     @staticmethod
     def fixStupidEncodings(x, silent=False):
         if type(x) == str:
@@ -117,6 +142,18 @@ class ek:
             return result
 
 
+class ekPy3:
+    @staticmethod
+    def ek(func, *args, **kwargs):
+        return func(*args, **kwargs)
+
+
+if PY2:
+    ek = ekPy2
+else:
+    ek = ekPy3
+
+
 filename = env_var.get('NZBNP_FILENAME')
 if re.search(r"\.tar\.gz$", filename, flags=re.I) is None:
     ext = os.path.splitext(filename)[1].lower()
@@ -150,7 +187,7 @@ def read_gzip_info(gzipfile):
     gf.seek(0)
     magic = gf.read(2)
     if magic != '\037\213':
-        raise IOError, 'Not a gzipped file'
+        raise IOError('Not a gzipped file')
 
     method, flag, mtime = struct.unpack("<BBIxx", gf.read(8))
 
@@ -183,13 +220,13 @@ def save_obj(obj, name):
         try:
             os.makedirs(tp)
         except:
-            print "Error creating Dir " + tp
+            print("Error creating Dir %s" % tp)
             return
     try:
         with open(name, 'wb') as f:
             pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
     except:
-        print "Error saving: " + name
+        print("Error saving: %s" % name)
 
 def load_obj(name):
     if os.path.isfile(name):
@@ -197,7 +234,7 @@ def load_obj(name):
             with open(name, 'rb') as f:
                 return pickle.load(f)
         except:
-            print "Error loading " + name
+            print("Error loading %s" % name)
             return None
     else:
         return None
@@ -210,7 +247,7 @@ def save_nzb_list():
             try:
                 os.unlink(tmp_zipinfo)
             except:
-                print "Error deleting " + tmp_zipinfo
+                print("Error deleting %s" % tmp_zipinfo)
 
 def load_nzb_list():
     global nzb_list
@@ -241,9 +278,13 @@ def remove_filename():
     try:
         os.unlink(filename)
     except:
-        print "Error deleting " + filename
+        print("Error deleting %s" % filename)
 
-if ext == '.zip':
+
+if not ek.ek(os.path.isfile, filename):
+    sys.exit(0)
+
+elif ext == '.zip':
     load_nzb_list()
     zipf = zipfile.ZipFile(filename, mode='r')
     zf = get_files(zipf)
@@ -324,13 +365,13 @@ elif ext == '.nzb' and os.path.exists(tmp_zipinfo):
                 ni = i
                 break
         if ni is not None:
-            print "[NZB] CATEGORY=" + str(nzb_list[ni][1])
-            print "[NZB] PRIORITY=" + str(nzb_list[ni][2])
-            print "[NZB] TOP=" + str(nzb_list[ni][3])
-            print "[NZB] PAUSED=" + str(nzb_list[ni][4])
+            print("[NZB] CATEGORY=%s" % nzb_list[ni][1])
+            print("[NZB] PRIORITY=%s" % nzb_list[ni][2])
+            print("[NZB] TOP=%s" % nzb_list[ni][3])
+            print("[NZB] PAUSED=%s" % nzb_list[ni][4])
             if dupekey is not None:
-                print "[NZB] DUPEKEY=" + str(nzb_list[ni][5])
-                print "[NZB] DUPESCORE=" + str(nzb_list[ni][6])
-                print "[NZB] DUPEMODE=" + str(nzb_list[ni][7])
+                print("[NZB] DUPEKEY=%s" % nzb_list[ni][5])
+                print("[NZB] DUPESCORE=%s" % nzb_list[ni][6])
+                print("[NZB] DUPEMODE=%s" % nzb_list[ni][7])
             del nzb_list[ni]
             save_nzb_list()
