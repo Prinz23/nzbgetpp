@@ -18,6 +18,10 @@ import rarfile.rarfile as rarfile
 
 from gzip import FEXTRA, FNAME
 
+try:
+    from urllib import unquote
+except ImportError:
+    from urllib.parse import unquote
 
 if sys.version_info < (3, 0, 0):
     PY3 = False
@@ -196,7 +200,7 @@ def read_gzip_info(gzipfile):
         gf.seek(pos)
         fname = gzipfile.name
         if fname.endswith('.gz'):
-            fname = fname[:-3]
+            fname = unquote(fname[:-3])
         return fname, size
 
     if flag & FEXTRA:
