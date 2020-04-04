@@ -1,11 +1,12 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 ##############################################################################
 ### NZBGET SCAN SCRIPT                                          ###
 
 # Unzips zipped nzbs.
 #
-# NOTE: This script requires Python to be installed on your system.
+# NOTE: This script requires Python 3 to be installed on your system.
+#       It requires also to install py7zr (https://pypi.org/project/py7zr/)
 
 ##############################################################################
 ### OPTIONS                                                                ###
@@ -13,7 +14,7 @@
 ##############################################################################
 
 from __future__ import print_function
-import os, zipfile, tarfile, gzip, pickle, datetime, re, struct, locale, sys
+import os, zipfile, py7zr, tarfile, gzip, pickle, datetime, re, struct, locale, sys
 import rarfile.rarfile as rarfile
 
 from gzip import FEXTRA, FNAME
@@ -285,6 +286,11 @@ def get_rar_files(rf):
     ri[:] = [el for el in ri if os.path.splitext(el.filename)[1].lower() == '.nzb']
     return ri
 
+def get_7z_files(z7f):
+    z7i = z7f.getnames()
+    z7i[:] = [el for el in z7i if os.path.splitext(el)[1].lower() == '.nzb']
+    return z7i
+
 def remove_filename():
     try:
         os.unlink(filename)
@@ -309,6 +315,23 @@ elif ext == '.zip':
                 nzb_list = [[z.filename, cat, prio, top, pause, password, dupekey, dupescore, dupemode, now]]
         save_nzb_list()
     zipf.close()
+
+    remove_filename()
+
+elif ext == '.7z':
+    load_nzb_list()
+    sevenzf = py7zr.SevenZipFile(filename, mode='r')
+    _7zf = get_7z_files(sevenzf)
+    if _7zf:
+        ek.ek(sevenzf.extractall, path=dir)
+        now = datetime.datetime.now()
+        for _7z in _7zf:
+            if nzb_list:
+                nzb_list.append([_7z, cat, prio, top, pause, password, dupekey, dupescore, dupemode, now])
+            else:
+                nzb_list = [[_7z, cat, prio, top, pause, password, dupekey, dupescore, dupemode, now]]
+        save_nzb_list()
+    sevenzf.close()
 
     remove_filename()
 
