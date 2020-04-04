@@ -168,6 +168,7 @@ dir = env_var.get('NZBNP_DIRECTORY')
 prio = env_var.get('NZBNP_PRIORITY')
 top = env_var.get('NZBNP_TOP')
 pause = env_var.get('NZBNP_PAUSED')
+password = env_var.get('NZBPR_*Unpack:Password')
 if 'NZBNP_DUPEKEY' in os.environ:
     dupekey = env_var.get('NZBNP_DUPEKEY')
     dupescore = env_var.get('NZBNP_DUPESCORE')
@@ -259,7 +260,7 @@ def load_nzb_list():
     if nzb_list:
         now = datetime.datetime.now()
         o_l = len(nzb_list)
-        nzb_list[:] = [el for el in nzb_list if (now - el[8]).days < 1]
+        nzb_list[:] = [el for el in nzb_list if (now - el[9]).days < 1]
         if nzb_list is not None and o_l != len(nzb_list):
             save_nzb_list()
 
@@ -297,9 +298,9 @@ elif ext == '.zip':
         now = datetime.datetime.now()
         for z in zf:
             if nzb_list:
-                nzb_list.append([z.filename, cat, prio, top, pause, dupekey, dupescore, dupemode, now])
+                nzb_list.append([z.filename, cat, prio, top, pause, password, dupekey, dupescore, dupemode, now])
             else:
-                nzb_list = [[z.filename, cat, prio, top, pause, dupekey, dupescore, dupemode, now]]
+                nzb_list = [[z.filename, cat, prio, top, pause, password, dupekey, dupescore, dupemode, now]]
         save_nzb_list()
     zipf.close()
 
@@ -314,9 +315,9 @@ elif ext in ['.tar.gz', '.tar', '.tgz']:
         now = datetime.datetime.now()
         for z in tf:
             if nzb_list:
-                nzb_list.append([z.name, cat, prio, top, pause, dupekey, dupescore, dupemode, now])
+                nzb_list.append([z.name, cat, prio, top, pause, password, dupekey, dupescore, dupemode, now])
             else:
-                nzb_list = [[z.name, cat, prio, top, pause, dupekey, dupescore, dupemode, now]]
+                nzb_list = [[z.name, cat, prio, top, pause, password, dupekey, dupescore, dupemode, now]]
         save_nzb_list()
     tarf.close()
 
@@ -334,9 +335,9 @@ elif ext == '.gz':
         if gzf and out_filename:
             now = datetime.datetime.now()
             if nzb_list:
-                nzb_list.append([os.path.basename(out_filename), cat, prio, top, pause, dupekey, dupescore, dupemode, now])
+                nzb_list.append([os.path.basename(out_filename), cat, prio, top, pause, password, dupekey, dupescore, dupemode, now])
             else:
-                nzb_list = [[os.path.basename(out_filename), cat, prio, top, pause, dupekey, dupescore, dupemode, now]]
+                nzb_list = [[os.path.basename(out_filename), cat, prio, top, pause, password, dupekey, dupescore, dupemode, now]]
             save_nzb_list()
     gzf.close()
 
@@ -351,9 +352,9 @@ elif ext == '.rar':
         now = datetime.datetime.now()
         for r in rf:
             if nzb_list:
-                nzb_list.append([r.filename, cat, prio, top, pause, dupekey, dupescore, dupemode, now])
+                nzb_list.append([r.filename, cat, prio, top, pause, password, dupekey, dupescore, dupemode, now])
             else:
-                nzb_list = [[r.filename, cat, prio, top, pause, dupekey, dupescore, dupemode, now]]
+                nzb_list = [[r.filename, cat, prio, top, pause, password, dupekey, dupescore, dupemode, now]]
         save_nzb_list()
     rarf.close()
 
@@ -373,9 +374,10 @@ elif ext == '.nzb' and os.path.exists(tmp_zipinfo):
             print("[NZB] PRIORITY=%s" % nzb_list[ni][2])
             print("[NZB] TOP=%s" % nzb_list[ni][3])
             print("[NZB] PAUSED=%s" % nzb_list[ni][4])
+            print("[NZB] NZBPR_*Unpack:Password=%s" % nzb_list[ni][5])
             if dupekey is not None:
-                print("[NZB] DUPEKEY=%s" % nzb_list[ni][5])
-                print("[NZB] DUPESCORE=%s" % nzb_list[ni][6])
-                print("[NZB] DUPEMODE=%s" % nzb_list[ni][7])
+                print("[NZB] DUPEKEY=%s" % nzb_list[ni][6])
+                print("[NZB] DUPESCORE=%s" % nzb_list[ni][7])
+                print("[NZB] DUPEMODE=%s" % nzb_list[ni][8])
             del nzb_list[ni]
             save_nzb_list()
