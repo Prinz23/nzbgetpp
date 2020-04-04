@@ -254,10 +254,16 @@ def save_nzb_list():
             except:
                 print("Error deleting %s" % tmp_zipinfo)
 
+def upgrade_nzb_list_9():
+    global nzb_list
+    nzb_list = [[el[0], el[1], el[2], el[3], el[4], password, el[5], el[6], el[7], el[8]] for el in nzb_list]
+
 def load_nzb_list():
     global nzb_list
     nzb_list = load_obj(tmp_zipinfo)
     if nzb_list:
+        if 9 == len(nzb_list[0]):
+            upgrade_nzb_list_9()
         now = datetime.datetime.now()
         o_l = len(nzb_list)
         nzb_list[:] = [el for el in nzb_list if (now - el[9]).days < 1]
