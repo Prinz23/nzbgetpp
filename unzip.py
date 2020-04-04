@@ -1,12 +1,13 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 #
 ##############################################################################
 ### NZBGET SCAN SCRIPT                                          ###
 
 # Unzips zipped nzbs.
 #
-# NOTE: This script requires Python 3 to be installed on your system.
-#       It requires also to install py7zr (https://pypi.org/project/py7zr/)
+# NOTE: This script requires Python to be installed on your system.
+#       Optional support of py7zr (https://pypi.org/project/py7zr/)
+#       under python 3
 
 ##############################################################################
 ### OPTIONS                                                                ###
@@ -14,7 +15,12 @@
 ##############################################################################
 
 from __future__ import print_function
-import os, zipfile, py7zr, tarfile, gzip, pickle, datetime, re, struct, locale, sys
+import os, zipfile, tarfile, gzip, pickle, datetime, re, struct, locale, sys
+try:
+    import py7zr
+    support_7z = True
+except ImportError:
+    support_7z = False
 import rarfile.rarfile as rarfile
 
 from gzip import FEXTRA, FNAME
@@ -318,7 +324,7 @@ elif ext == '.zip':
 
     remove_filename()
 
-elif ext == '.7z':
+elif PY3 and support_7z and ext == '.7z':
     load_nzb_list()
     sevenzf = py7zr.SevenZipFile(filename, mode='r')
     _7zf = get_7z_files(sevenzf)
