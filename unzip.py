@@ -409,7 +409,8 @@ elif ext == '.nzb' and os.path.exists(tmp_zipinfo):
             print("[NZB] PRIORITY=%s" % nzb_list[ni][2])
             print("[NZB] TOP=%s" % nzb_list[ni][3])
             print("[NZB] PAUSED=%s" % nzb_list[ni][4])
-            print("[NZB] NZBPR_*Unpack:Password=%s" % nzb_list[ni][5])
+            if nzb_list[ni][5] not in (None, ''):
+                print("[NZB] NZBPR_*Unpack:Password=%s" % nzb_list[ni][5])
             if dupekey is not None:
                 print("[NZB] DUPEKEY=%s" % nzb_list[ni][6])
                 print("[NZB] DUPESCORE=%s" % nzb_list[ni][7])
