@@ -198,7 +198,7 @@ def read_gzip_info(gzipfile):
 
     gf.seek(0)
     magic = gf.read(2)
-    if magic != '\037\213':
+    if (PY2 and magic != '\037\213') or (PY3 and magic !=  b'\x1F\x8B'):
         raise IOError('Not a gzipped file')
 
     method, flag, mtime = struct.unpack("<BBIxx", gf.read(8))
