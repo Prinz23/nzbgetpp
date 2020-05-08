@@ -219,12 +219,12 @@ def read_gzip_info(gzipfile):
     fname = []
     while True:
         s = gf.read(1)
-        if not s or s=='\000':
+        if not s or s == b'\000':
             break
         fname.append(s)
 
     gf.seek(pos)
-    return ''.join(fname), size
+    return b''.join(fname).decode("utf-8"), size
 
 def save_obj(obj, name):
     tp = os.path.dirname(name)
