@@ -171,7 +171,7 @@ if re.search(r"\.tar\.gz$", filename, flags=re.I) is None:
 else:
     ext = '.tar.gz'
 cat = env_var.get('NZBNP_CATEGORY')
-dir = env_var.get('NZBNP_DIRECTORY')
+nzb_dir = env_var.get('NZBNP_DIRECTORY')
 prio = env_var.get('NZBNP_PRIORITY')
 top = env_var.get('NZBNP_TOP')
 pause = env_var.get('NZBNP_PAUSED')
@@ -305,6 +305,7 @@ def remove_filename():
 
 
 if not ek.ek(os.path.isfile, filename):
+    print("No file")
     sys.exit(0)
 
 elif ext == '.zip':
@@ -312,7 +313,7 @@ elif ext == '.zip':
     zipf = zipfile.ZipFile(filename, mode='r')
     zf = get_files(zipf)
     if zf:
-        ek.ek(zipf.extractall, path=dir, members=zf)
+        ek.ek(zipf.extractall, path=nzb_dir, members=zf)
         now = datetime.datetime.now()
         for z in zf:
             if nzb_list:
@@ -329,7 +330,7 @@ elif PY3 and support_7z and ext == '.7z':
     sevenzf = py7zr.SevenZipFile(filename, mode='r')
     _7zf = get_7z_files(sevenzf)
     if _7zf:
-        ek.ek(sevenzf.extractall, path=dir)
+        ek.ek(sevenzf.extractall, path=nzb_dir)
         now = datetime.datetime.now()
         for _7z in _7zf:
             if nzb_list:
@@ -346,7 +347,7 @@ elif ext in ['.tar.gz', '.tar', '.tgz']:
     tarf = tarfile.open(filename, mode='r')
     tf = get_tar_files(tarf)
     if tf:
-        ek.ek(tarf.extractall, path=dir, members=tf)
+        ek.ek(tarf.extractall, path=nzb_dir, members=tf)
         now = datetime.datetime.now()
         for z in tf:
             if nzb_list:
@@ -383,7 +384,7 @@ elif ext == '.rar':
     rarf = rarfile.RarFile(filename, mode='r')
     rf = get_files(rarf)
     if rf:
-        ek.ek(rarf.extractall, path=dir, members=rf)
+        ek.ek(rarf.extractall, path=nzb_dir, members=rf)
         now = datetime.datetime.now()
         for r in rf:
             if nzb_list:
